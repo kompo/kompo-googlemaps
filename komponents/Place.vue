@@ -30,15 +30,27 @@
             @zoom_changed="setZoom"
             :options="mapOptions"
         >
-            <GmapMarker
+            <div 
                 v-for="(marker, index) in markers"
-                :key="index"
-                :position="marker"
-                :clickable="true"
-                :draggable="true"
-                :icon="marker.icon"
-                @click.stop=" center = marker"
-            />
+                :key=index
+            >
+                <component
+                    v-if="marker.config"
+                    :is=$_vueTag(marker)
+                    :vkompo=marker
+                    :kompoid=kompoid
+                    :center="center"
+                    @markerClicked="center = parseComponentPosition(marker)"
+                />
+                <GmapMarker
+                    v-else
+                    :position="marker"
+                    :clickable="true"
+                    :draggable="true"
+                    :icon="marker.icon"
+                    @click=" center = marker"
+                />
+            </div>
         </GmapMap>
     </vl-form-field>
 
@@ -49,6 +61,7 @@ import Field from 'vue-kompo/js/form/mixins/Field'
 import HasTaggableInput from 'vue-kompo/js/form/mixins/HasTaggableInput'
 import SetInitialValueAsArray from 'vue-kompo/js/form/mixins/SetInitialValueAsArray'
 import draggable from 'vuedraggable'
+import MarkerTrigger from './MarkerTrigger'
 
 import * as VueGoogleMaps from 'vue2-google-maps'
 Vue.use(VueGoogleMaps, {
@@ -60,7 +73,7 @@ Vue.use(VueGoogleMaps, {
 
 export default {
     mixins: [Field, VueGoogleMaps, HasTaggableInput, SetInitialValueAsArray],
-    components: { draggable },
+    components: { draggable, MarkerTrigger },
 
     data: () => ({
         labelKey: 'address',
@@ -189,21 +202,16 @@ export default {
         },
         placeMarkersOnMap(markers){
             markers.forEach( (place) => {
-                if(place.lat && place.lng){
-                    let marker = { 
-                        lat: parseFloat(place.lat), 
-                        lng: parseFloat(place.lng),
-                        icon: place.icon,
-                    }
-                    this.markers.push(marker)
+                if((place.config.lat && place.config.lng) || (place.lat && place.lng)){
+                    this.markers.push(place)
                 }
             })
         },
         getDistanceLatLng(position1,position2) {
-            var lat1=position1.lat;
-            var lat2=position2.lat;
-            var lon1=position1.lng;
-            var lon2=position2.lng;
+            var lat1=this.getPosition(position1).lat;
+            var lat2=this.getPosition(position2).lat;
+            var lon1=this.getPosition(position1).lng;
+            var lon2=this.getPosition(position2).lng;
             function deg2rad(deg) {
                 return deg * (Math.PI/180)
             }
@@ -314,7 +322,21 @@ export default {
                 
             })
         },
+
+        getPosition(marker) {
+            if (marker.config) {
+                return this.parseComponentPosition(marker)
+            }
+
+            return marker
+        },
+
+        parseComponentPosition(component){
+            return {
+                lat: parseFloat(component.config.lat),
+                lng: parseFloat(component.config.lng),
+            }
+        },
     }
 }
 </script>
-
