@@ -30,15 +30,27 @@
             @zoom_changed="setZoom"
             :options="mapOptions"
         >
-            <GmapMarker
+            <div 
                 v-for="(marker, index) in markers"
-                :key="index"
-                :position="marker"
-                :clickable="true"
-                :draggable="true"
-                :icon="marker.icon"
-                @click.stop=" center = marker"
-            />
+                :key=index
+            >
+                <component
+                    v-if="marker.config"
+                    :is=$_vueTag(marker)
+                    :vkompo=marker
+                    :kompoid=kompoid
+                    :center="center"
+                    @markerClicked="center = parseComponentPosition(marker)"
+                />
+                <GmapMarker
+                    v-else
+                    :position="marker"
+                    :clickable="true"
+                    :draggable="true"
+                    :icon="marker.icon"
+                    @click=" center = marker"
+                />
+            </div>
         </GmapMap>
     </vl-form-field>
 
@@ -49,6 +61,7 @@ import Field from 'vue-kompo/js/form/mixins/Field'
 import HasTaggableInput from 'vue-kompo/js/form/mixins/HasTaggableInput'
 import SetInitialValueAsArray from 'vue-kompo/js/form/mixins/SetInitialValueAsArray'
 import draggable from 'vuedraggable'
+import MarkerTrigger from './MarkerTrigger'
 
 import * as VueGoogleMaps from 'vue2-google-maps'
 Vue.use(VueGoogleMaps, {
@@ -60,7 +73,7 @@ Vue.use(VueGoogleMaps, {
 
 export default {
     mixins: [Field, VueGoogleMaps, HasTaggableInput, SetInitialValueAsArray],
-    components: { draggable },
+    components: { draggable, MarkerTrigger },
 
     data: () => ({
         labelKey: 'address',
@@ -90,7 +103,10 @@ export default {
         }
 
         if(this.addMarkers)
-            this.placeMarkersOnMap(this.addMarkers)
+            this.addMarkers.forEach( (place) => {
+                if(place.config.lat && place.config.lng)
+                    this.markers.push(place)
+            })
 
         if(this.markers.length)
             this.centerAndZoom()
@@ -173,58 +189,11 @@ export default {
 
                 this.updateEditLinkPayload()
             }
-
-            var latLngObject = {
+            this.setLocation({
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng()
-            }
-
-            this.setLocation(latLngObject)
-            this.$_blurAction()
-
-            if (this.addMarkers) {
-                let closestMarkers = this.findClosestElements(this.addMarkers, latLngObject)
-                this.placeMarkersOnMap(closestMarkers)
-            }
-        },
-        placeMarkersOnMap(markers){
-            markers.forEach( (place) => {
-                if(place.lat && place.lng){
-                    let marker = { 
-                        lat: parseFloat(place.lat), 
-                        lng: parseFloat(place.lng),
-                        icon: place.icon,
-                    }
-                    this.markers.push(marker)
-                }
             })
-        },
-        getDistanceLatLng(position1,position2) {
-            var lat1=position1.lat;
-            var lat2=position2.lat;
-            var lon1=position1.lng;
-            var lon2=position2.lng;
-            function deg2rad(deg) {
-                return deg * (Math.PI/180)
-            }
-            const R = 6371; // Radius of the earth in kilometers
-            const dLat = deg2rad(lat2 - lat1);  // deg2rad below
-            const dLon = deg2rad(lon2 - lon1); 
-            const a = 
-                Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-                Math.sin(dLon/2) * Math.sin(dLon/2)
-
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-            const d = R * c; // Distance in km
-            return d;
-        },
-        findClosestElements(array, initialValue) {
-            // Sort the array based on the absolute difference from the initial value
-            array.sort((a, b) => this.getDistanceLatLng(a, initialValue) - this.getDistanceLatLng(b, initialValue));
-            
-            // Select the first five elements
-            return array.slice(0, 5);
+            this.$_blurAction()
         },
         $_bestGuessLabelFromSelection(selection){
             return selection.address
@@ -313,6 +282,13 @@ export default {
                 this.updateEditLinkPayload()
                 
             })
+        },
+
+        parseComponentPosition(component){
+            return {
+                lat: parseFloat(component.config.lat),
+                lng: parseFloat(component.config.lng),
+            }
         },
     }
 }
