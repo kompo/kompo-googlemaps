@@ -1,0 +1,31 @@
+{
+  "name": "kompo-googlemaps",
+  "version": "1.0.15",
+  "description": "Kompo Google Maps Places form components and mixins",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "google",
+    "maps",
+    "places",
+    "api",
+    "markers",
+    "kompo",
+    "multiple",
+    "vue",
+    "laravel",
+    "components",
+    "form",
+    "forms",
+    "style"
+  ],
+  "author": "Bass El Hachem <contact@kompo.io> (https://kompo.io)",
+  "license": "MIT",
+  "dependencies": {
+    "vue": "^2.5.7",
+    "vue-kompo": "^3.0",
+    "vue2-google-maps": "^0.10.5"
+  }
+}
