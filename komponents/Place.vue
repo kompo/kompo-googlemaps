@@ -103,10 +103,7 @@ export default {
         }
 
         if(this.addMarkers)
-            this.addMarkers.forEach( (place) => {
-                if(place.config.lat && place.config.lng)
-                    this.markers.push(place)
-            })
+            this.placeMarkersOnMap(this.addMarkers)
 
         if(this.markers.length)
             this.centerAndZoom()
@@ -189,11 +186,53 @@ export default {
 
                 this.updateEditLinkPayload()
             }
-            this.setLocation({
+
+            var latLngObject = {
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng()
-            })
+            }
+
+            this.setLocation(latLngObject)
             this.$_blurAction()
+
+            if (this.addMarkers) {
+                let closestMarkers = this.findClosestElements(this.addMarkers, latLngObject)
+                this.placeMarkersOnMap(closestMarkers)
+            }
+        },
+        placeMarkersOnMap(markers){
+            markers.forEach( (place) => {
+                if((place.config.lat && place.config.lng) || (place.lat && place.lng)){
+                    this.markers.push(place)
+                }
+            })
+        },
+        getDistanceLatLng(position1,position2) {
+            var lat1=this.getPosition(position1).lat;
+            var lat2=this.getPosition(position2).lat;
+            var lon1=this.getPosition(position1).lng;
+            var lon2=this.getPosition(position2).lng;
+            function deg2rad(deg) {
+                return deg * (Math.PI/180)
+            }
+            const R = 6371; // Radius of the earth in kilometers
+            const dLat = deg2rad(lat2 - lat1);  // deg2rad below
+            const dLon = deg2rad(lon2 - lon1); 
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2)
+
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            const d = R * c; // Distance in km
+            return d;
+        },
+        findClosestElements(array, initialValue) {
+            // Sort the array based on the absolute difference from the initial value
+            array.sort((a, b) => this.getDistanceLatLng(a, initialValue) - this.getDistanceLatLng(b, initialValue));
+            
+            // Select the first five elements
+            return array.slice(0, 5);
         },
         $_bestGuessLabelFromSelection(selection){
             return selection.address
@@ -284,6 +323,14 @@ export default {
             })
         },
 
+        getPosition(marker) {
+            if (marker.config) {
+                return this.parseComponentPosition(marker)
+            }
+
+            return marker
+        },
+
         parseComponentPosition(component){
             return {
                 lat: parseFloat(component.config.lat),
@@ -293,4 +340,3 @@ export default {
     }
 }
 </script>
-
