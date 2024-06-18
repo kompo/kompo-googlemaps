@@ -40,8 +40,10 @@ export default {
             this.$_clickAction();
         }
     },
-    props: {
-        center: Object,
+    watch: {
+        vkompo(){
+            this.component = this.vkompo;
+        }
     }
 }
 </script>

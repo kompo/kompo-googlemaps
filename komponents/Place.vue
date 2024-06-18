@@ -98,15 +98,9 @@ export default {
         if(this.$_value.length){
             this.$_value.forEach( (place) => {
                 if(place.lat && place.lng)
-                    this.setLocation({ lat: parseFloat(place.lat), lng: parseFloat(place.lng) })
+                    this.setLocationWithMarkers({ lat: parseFloat(place.lat), lng: parseFloat(place.lng) })
             })
         }
-
-        if(this.addMarkers)
-            this.placeMarkersOnMap(this.addMarkers)
-
-        if(this.markers.length)
-            this.centerAndZoom()
 
         if (this.$_noAutocomplete) {
             setTimeout(() => this.$refs.input.$el.setAttribute('autocomplete', 'off-'+this.$_elementId()), 500)
@@ -138,7 +132,7 @@ export default {
             return {
                 ...this.$_defaultFieldEvents,
                 blur: this.blur,
-                'place_changed': this.addPlaceToValue
+                'place_changed': this.placeChanged
             }
         },
         $_pristine() {
@@ -177,8 +171,10 @@ export default {
                 this.component.value = [_.cloneDeep(this.emptyRow)]
             }
         },
-        addPlaceToValue(place){
+        
+        placeChanged(place) {
             place[this.formattedLabel] = place.formatted_address
+
             if(this.$_multiple){
                 this.component.value.push(place)
             }else{
@@ -187,23 +183,30 @@ export default {
                 this.updateEditLinkPayload()
             }
 
-            var latLngObject = {
+            this.setLocationWithMarkers({
                 lat: place.geometry.location.lat(),
                 lng: place.geometry.location.lng()
-            }
+            });
+        },
 
-            this.setLocation(latLngObject)
+        setLocationWithMarkers(place){
+            this.setLocation(place)
             this.$_blurAction()
 
             if (this.addMarkers) {
-                let closestMarkers = this.findClosestElements(this.addMarkers, latLngObject)
+                let closestMarkers = this.findClosestElements(this.addMarkers, place)
                 this.placeMarkersOnMap(closestMarkers)
             }
+
+            if(this.markers.length)
+                this.centerAndZoom()
         },
         placeMarkersOnMap(markers){
             markers.forEach( (place) => {
-                if((place.config.lat && place.config.lng) || (place.lat && place.lng)){
-                    this.markers.push(place)
+                const pos = this.getPosition(place);
+
+                if(pos.lat && pos.lng){
+                    this.markers.push(place);
                 }
             })
         },
@@ -259,8 +262,9 @@ export default {
             this.$refs.gmap.$mapPromise.then((map) => {
                 const bounds = new google.maps.LatLngBounds()
                 for (let m of this.markers) {
-                    if(m.lat && m.lng)
-                        bounds.extend(new google.maps.LatLng(m.lat, m.lng))
+                    const pos = this.getPosition(m);
+                    if(pos.lat && pos.lng)
+                        bounds.extend(new google.maps.LatLng(pos.lat, pos.lng))
                 }
                 if(this.markers.length <= 1){
                     map.setCenter(bounds.getCenter())
