@@ -1,6 +1,6 @@
 {
   "name": "kompo-googlemaps",
-  "version": "1.0.15",
+  "version": "1.0.17",
   "description": "Kompo Google Maps Places form components and mixins",
   "main": "index.js",
   "scripts": {
